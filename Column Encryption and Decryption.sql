@@ -43,3 +43,20 @@ CLOSE SYMMETRIC KEY SymKey_test;
 OPEN SYMMETRIC KEY SymKey_test DECRYPTION BY CERTIFICATE Certificate_test;
 select username, CONVERT(varchar, DecryptByKey(password_encrypted)) as 'decrypted' from users
 CLOSE SYMMETRIC KEY SymKey_test;
+
+
+CREATE TRIGGER trigger_encryptpass
+ON users
+AFTER  INSERT
+AS
+BEGIN
+	SET NOCOUNT ON;
+	DECLARE @userId int
+	DECLARE @pwd varchar(10) 
+	select @userId = userId from inserted
+	select @pwd = pwd from inserted
+	OPEN SYMMETRIC KEY SymKey_test DECRYPTION BY CERTIFICATE Certificate_test;
+	UPDATE users SET password_encrypted = ENCRYPTBYKEY(KEY_GUID('SymKey_test'), @pwd) from users where userId=@userId;
+	CLOSE SYMMETRIC KEY SymKey_test;
+	PRINT 'PASSWORD ENCRYPTED';
+END
